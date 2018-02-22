@@ -26,7 +26,14 @@
 #include "common/types.hpp"
 #include "main/iroha_conf_loader.hpp"
 
+// workaround for redefining -WERROR problem
+#undef RAPIDJSON_HAS_STDSTRING
+
+#include "framework/config_helper.hpp"
+#include "model/converters/json_common.hpp"
+
 using namespace boost::process;
+using namespace boost::filesystem;
 using namespace std::chrono_literals;
 using iroha::operator|;
 
@@ -37,11 +44,24 @@ class IrohadTest : public testing::Test {
     setPaths();
     auto config = parse_iroha_config(path_config_.string());
     blockstore_path_ = config[config_members::BlockStorePath].GetString();
-    pgopts_ = config[config_members::PgOpt].GetString();
+    pgopts_ = integration_framework::getPostgresCredsOrDefault(
+        config[config_members::PgOpt].GetString());
+    // we need a separate file here in case if target environment
+    // has custom database connection options set
+    // via environment variables
+    auto config_copy_json = parse_iroha_config(path_config_.string());
+    config_copy_json[config_members::PgOpt].SetString(pgopts_.data(),
+                                                      pgopts_.size());
+    auto config_copy_string =
+        iroha::model::converters::jsonToString(config_copy_json);
+    std::ofstream copy_file(config_copy_);
+    copy_file.write(config_copy_string.data(), config_copy_string.size());
   }
+
   void TearDown() override {
     iroha::remove_all(blockstore_path_);
     dropPostgres();
+    boost::filesystem::remove(config_copy_);
   }
 
   std::string params(const boost::optional<std::string> &config_path,
@@ -55,8 +75,7 @@ class IrohadTest : public testing::Test {
   }
 
   std::string setDefaultParams() {
-    return params(
-        path_config_.string(), path_genesis_.string(), path_keypair_.string());
+    return params(config_copy_, path_genesis_.string(), path_keypair_.string());
   }
 
  private:
@@ -67,6 +86,7 @@ class IrohadTest : public testing::Test {
     path_config_ = path_example_ / "config.sample";
     path_genesis_ = path_example_ / "genesis.block";
     path_keypair_ = path_example_ / "node0";
+    config_copy_ = path_config_.string() + std::string(".copy");
   }
 
   void dropPostgres() {
@@ -113,6 +133,7 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
   boost::filesystem::path path_keypair_;
   std::string pgopts_;
   std::string blockstore_path_;
+  std::string config_copy_;
 };
 
 /*

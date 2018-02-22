@@ -23,6 +23,7 @@ target_link_libraries(tx_pipeline_integration_test
     integration_framework
     shared_model_ed25519_sha3
     shared_model_stateless_validation
+    integration_framework_config_helper
     )
 
 addtest(transfer_asset_inter_domain_test transfer_asset_inter_domain_test.cpp)

@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 
+#include "framework/config_helper.hpp"
 #include "integration/pipeline/test_irohad.hpp"
 
 namespace integration_framework {
@@ -61,27 +62,9 @@ namespace integration_framework {
 
     std::shared_ptr<TestIrohad> instance_;
 
-    std::string getPostgreCredsOrDefault(const std::string &default_conn =
-                                             "host=localhost port=5432 "
-                                             "user=postgres "
-                                             "password=mysecretpassword") {
-      auto pg_host = std::getenv("IROHA_POSTGRES_HOST");
-      auto pg_port = std::getenv("IROHA_POSTGRES_PORT");
-      auto pg_user = std::getenv("IROHA_POSTGRES_USER");
-      auto pg_pass = std::getenv("IROHA_POSTGRES_PASSWORD");
-      if (not pg_host) {
-        return default_conn;
-      } else {
-        std::stringstream ss;
-        ss << "host=" << pg_host << " port=" << pg_port << " user=" << pg_user
-           << " password=" << pg_pass;
-        return ss.str();
-      }
-    }
-
     // config area
     const std::string block_store_dir_ = "/tmp/block_store";
-    const std::string pg_conn_ = getPostgreCredsOrDefault();
+    const std::string pg_conn_ = getPostgresCredsOrDefault();
     const size_t torii_port_ = 11501;
     const size_t internal_port_ = 10001;
     const size_t max_proposal_size_ = 10;
