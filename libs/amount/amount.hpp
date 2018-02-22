@@ -19,19 +19,19 @@
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <cstdint>
 #include <boost/optional.hpp>
+#include <cstdint>
 #include <string>
 
 namespace iroha {
-
-  using namespace boost::multiprecision;
 
   /**
    * Keeps integer and scale values allowing performing math
    * operations on them
    */
   class Amount {
+    using uint256_t = boost::multiprecision::uint256_t;
+
    public:
     /**
      * Creates Amount with integer = 0 and scale = 0

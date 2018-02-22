@@ -249,7 +249,7 @@ namespace iroha_cli {
       auto res = handleParse<bool>(
           this, line, result_handlers_, result_params_descriptions_);
 
-      return not res ? true : res.value();
+      return res.get_value_or(true);
     }
 
     bool InteractiveQueryCli::parseSendToIroha(QueryParams params) {

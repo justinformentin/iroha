@@ -460,7 +460,7 @@ namespace iroha_cli {
       // Find in result handler map
       auto res = handleParse<bool>(
           this, line, result_handlers_, result_params_descriptions);
-      return not res ? true : res.value();
+      return res.get_value_or(true);
     }
 
     bool InteractiveTransactionCli::parseSendToIroha(
