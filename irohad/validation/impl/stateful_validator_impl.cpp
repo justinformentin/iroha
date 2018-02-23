@@ -47,19 +47,13 @@ namespace iroha {
                 }
                 |
                 [&](const auto &signatories) {
-                  auto model_signatories =
-                      signatories
-                      | boost::adaptors::transformed([](const auto &signatory) {
-                          return shared_model::crypto::PublicKey(
-                              signatory.to_string());
-                        });
                   // Check if signatures in transaction are account signatory
                   return this->signaturesSubset(
                              shared_model::proto::from_old(tx).signatures(),
                              std::vector<shared_model::crypto::PublicKey>(
-                                 model_signatories.begin(),
-                                 model_signatories.end()))
-                      ? nonstd::make_optional(model_signatories)
+                                 signatories.begin(),
+                                 signatories.end()))
+                      ? nonstd::make_optional(signatories)
                       : nonstd::nullopt;
                 })
             .has_value();

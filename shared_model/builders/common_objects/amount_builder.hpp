@@ -54,19 +54,6 @@ namespace shared_model {
         return copy;
       }
 
-     protected:
-      virtual std::string builderName() const override {
-        return "Amount Builder";
-      }
-
-      virtual validation::ReasonsGroupType validate(
-          const interface::Amount &object) override {
-        validation::ReasonsGroupType reasons;
-        this->validator_.validateAmount(reasons, object);
-
-        return reasons;
-      }
-
       /**
        * Constructs Amount object from given string
        * @param str_amount string in format "100.00",
@@ -106,9 +93,18 @@ namespace shared_model {
 
       }
 
-     private:
-      Validator validator_;
-      BuilderImpl builder_;
+     protected:
+      virtual std::string builderName() const override {
+        return "Amount Builder";
+      }
+
+      virtual validation::ReasonsGroupType validate(
+          const interface::Amount &object) override {
+        validation::ReasonsGroupType reasons;
+        this->validator_.validatePrecision(reasons, object.precision());
+
+        return reasons;
+      }
     };
   }  // namespace builder
 }  // namespace shared_model

@@ -215,7 +215,7 @@ TEST_F(ToriiQueriesTest, FindAccountWhenHasReadPermissions) {
 
   auto accountB = std::shared_ptr<shared_model::interface::Account>(
       shared_model::proto::AccountBuilder()
-          .accountId("accountB")
+          .accountId("b@domain")
           .build()
           .copy());
 
@@ -238,7 +238,7 @@ TEST_F(ToriiQueriesTest, FindAccountWhenHasReadPermissions) {
                          .creatorAccountId(creator)
                          .queryCounter(1)
                          .createdTime(iroha::time::now())
-                         .getAccount(accountB.account_id)
+                         .getAccount(accountB->accountId())
                          .build()
                          .signAndAddSignature(
                              shared_model::crypto::DefaultCryptoAlgorithmType::
@@ -250,7 +250,7 @@ TEST_F(ToriiQueriesTest, FindAccountWhenHasReadPermissions) {
   // Should not return Error Response because tx is stateless and stateful valid
   ASSERT_FALSE(response.has_error_response());
   ASSERT_EQ(response.account_response().account().account_id(),
-            accountB.account_id);
+            accountB->accountId());
   ASSERT_EQ(response.account_response().account_roles().size(), 1);
   ASSERT_EQ(iroha::hash(model_query.getTransport()).to_string(),
             response.query_hash());
@@ -290,9 +290,9 @@ TEST_F(ToriiQueriesTest, FindAccountWhenHasRolePermission) {
   ASSERT_FALSE(response.has_error_response());
   //  ASSERT_EQ(response.account_detail_response().detail(), "value");
   ASSERT_EQ(response.account_response().account().account_id(),
-            account.account_id);
+            account->accountId());
   ASSERT_EQ(response.account_response().account().domain_id(),
-            account.domain_id);
+            account->domainId());
   ASSERT_EQ(iroha::hash(model_query.getTransport()).to_string(),
             response.query_hash());
 }
@@ -397,10 +397,14 @@ TEST_F(ToriiQueriesTest, FindAccountAssetWhenHasRolePermissions) {
             account_asset->accountId());
   auto iroha_amount_asset = iroha::model::converters::deserializeAmount(
       response.account_assets_response().account_asset().balance());
-  ASSERT_EQ(iroha_amount_asset, account_asset.balance);
+  ASSERT_EQ(iroha_amount_asset,
+            *std::unique_ptr<iroha::Amount>(
+                account_asset->balance().makeOldModel()));
   ASSERT_EQ(iroha::hash(model_query.getTransport()).to_string(),
             response.query_hash());
 }
+
+
 
 /**
  * Test for signatories response
