@@ -14,6 +14,11 @@ manifests:
       architecture: arm
       os: linux
       variant: v7
+  -
+    image: hyperledger/iroha:aarch64
+    platform:
+      architecture: arm64
+      os: linux
 
 # develop branch
 image: hyperledger/iroha:develop
@@ -31,3 +36,8 @@ manifests:
       architecture: arm
       os: linux
       variant: v7
+  -
+    image: hyperledger/iroha-develop:aarch64
+    platform:
+      architecture: arm64
+      os: linux
