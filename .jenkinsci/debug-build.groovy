@@ -85,8 +85,8 @@ def doDebugBuild() {
 		          -DIROHA_VERSION=${env.IROHA_VERSION} \
 		          ${cmake_options}
 		    """
-		    sh "cmake --build build -- -j${params.PARALLELISM}"
-		    sh "ccache --show-stats"
+		    // sh "cmake --build build -- -j${params.PARALLELISM}"
+		    // sh "ccache --show-stats"
 		    if (params.JavaBindings) {
 		    	sh "cmake --build build --target irohajava -- -j${params.PARALLELISM}"
 		    	// TODO: publish artifacts
@@ -96,8 +96,8 @@ def doDebugBuild() {
 		    	sh "cmake --build build --target irohapy -- -j${params.PARALLELISM}"
 		    	// TODO: publish artifacts
 		    }
-		    sh "cmake --build build --target test"
-		    sh "cmake --build build --target cppcheck"	    
+		    // sh "cmake --build build --target test"
+		    // sh "cmake --build build --target cppcheck"	    
 		    
 		    // // Sonar
 		    // if (env.CHANGE_ID != null) {
@@ -118,10 +118,10 @@ def doDebugBuild() {
 	        if ( env.BRANCH_NAME == "develop" ) {
 	            //archive(includes: 'build/bin/,compile_commands.json')
 	        }
-		    sh "lcov --capture --directory build --config-file .lcovrc --output-file build/reports/coverage_full.info"
-		    sh "lcov --remove build/reports/coverage_full.info '/usr/*' 'schema/*' --config-file .lcovrc -o build/reports/coverage_full_filtered.info"
-		    sh "python /tmp/lcov_cobertura.py build/reports/coverage_full_filtered.info -o build/reports/coverage.xml"                                
-		    cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/build/reports/coverage.xml', conditionalCoverageTargets: '75, 50, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '75, 50, 0', maxNumberOfBuilds: 50, methodCoverageTargets: '75, 50, 0', onlyStable: false, zoomCoverageChart: false
+		    // sh "lcov --capture --directory build --config-file .lcovrc --output-file build/reports/coverage_full.info"
+		    // sh "lcov --remove build/reports/coverage_full.info '/usr/*' 'schema/*' --config-file .lcovrc -o build/reports/coverage_full_filtered.info"
+		    // sh "python /tmp/lcov_cobertura.py build/reports/coverage_full_filtered.info -o build/reports/coverage.xml"                                
+		    // cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/build/reports/coverage.xml', conditionalCoverageTargets: '75, 50, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '75, 50, 0', maxNumberOfBuilds: 50, methodCoverageTargets: '75, 50, 0', onlyStable: false, zoomCoverageChart: false
 	    }
 	}
 }
