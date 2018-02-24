@@ -31,48 +31,16 @@ RUN apt-get -y --no-install-recommends install build-essential python-software-p
         gcovr cppcheck doxygen graphviz graphviz-dev; \
     apt-get -y clean
 
+RUN pip3 install --upgrade pip; \
+    pip3 install flask requests
 
-# install curl with https, 7.58.0
-RUN (cd /tmp; wget  https://curl.haxx.se/download/curl-7.58.0.tar.gz; \
-    tar -xf curl-*.tar.gz; \
-    cd curl-7.58.0; \
-    ./configure --with-ssl; \
-    make -j${PARALLELISM} install); \
-    ldconfig; \
-    rm -rf /tmp/curl*
-
-
-# install cmake 3.10.2
+# install cmake 3.5.1
 RUN git clone https://gitlab.kitware.com/cmake/cmake.git /tmp/cmake; \
     (cd /tmp/cmake ; git checkout 64130a7e793483e24c1d68bdd234f81d5edb2d51); \
     (cd /tmp/cmake ; /tmp/cmake/bootstrap --parallel=${PARALLELISM} --enable-ccache); \
     make -j${PARALLELISM} -C /tmp/cmake; \
     make -C /tmp/cmake install; \
     rm -rf /tmp/cmake
-
-# install docker
-ENV DOCKER_VERSION=17.06.0-ce
-RUN curl -L -o /tmp/docker-${DOCKER_VERSION}.tgz https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz; \
-    tar -xz -C /tmp -f /tmp/docker-${DOCKER_VERSION}.tgz; \
-    mv /tmp/docker/* /usr/bin; \
-    rm /tmp/docker-${DOCKER_VERSION}.tgz; \
-    rm -rf /tmp/docker
-
-# install sonar cli
-ENV SONAR_CLI_VERSION=3.0.3.778
-RUN mkdir -p /opt/sonar; \
-    curl -L -o /tmp/sonar.zip https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_CLI_VERSION}-linux.zip; \
-    unzip -o -d /tmp/sonar-scanner /tmp/sonar.zip; \
-    mv /tmp/sonar-scanner/sonar-scanner-${SONAR_CLI_VERSION}-linux /opt/sonar/scanner; \
-    ln -s -f /opt/sonar/scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner; \
-    rm -rf /tmp/sonar*
-
-# install sonar build wrapper
-RUN curl -L -o /tmp/sonar-build-wrapper.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip; \
-    unzip -o -d /tmp/sonar-build-wrapper /tmp/sonar-build-wrapper.zip; \
-    mv /tmp/sonar-build-wrapper/build-wrapper-linux-x86 /opt/sonar/build-wrapper; \
-    ln -s -f /opt/sonar/build-wrapper/build-wrapper-linux-x86-64 /usr/local/bin/sonar-build-wrapper; \
-    rm -rf /tmp/sonar*
 
 # install boost 1.65.1
 RUN git clone https://github.com/boostorg/boost /tmp/boost; \
@@ -170,6 +138,13 @@ RUN git clone https://github.com/jtv/libpqxx /tmp/libpqxx; \
     make -C /tmp/libpqxx install; \
     rm -rf /tmp/libpqxx
 
+# install cpp_redis 4.3.0
+RUN git clone https://github.com/Cylix/cpp_redis /tmp/cpp_redis; \
+    (cd /tmp/cpp_redis ; git checkout f390eef447a62dcb6da288fb1e91f25f8a9b838c); \
+    (cd /tmp/cpp_redis ; git submodule update --init --recursive); \
+    cmake -H/tmp/cpp_redis -B/tmp/cpp_redis/build; \
+    cmake --build /tmp/cpp_redis/build --target install -- -j${PARALLELISM}; \
+    rm -rf /tmp/cpp_redis
 
 # install tbb
 RUN git clone https://github.com/01org/tbb /tmp/tbb; \
@@ -180,6 +155,38 @@ RUN git clone https://github.com/01org/tbb /tmp/tbb; \
     cp -r /tmp/tbb/include/* /usr/local/include; \
     ldconfig; \
     rm -rf /tmp/tbb
+
+# install docker
+ENV DOCKER_VERSION=17.06.0-ce
+RUN curl -L -o /tmp/docker-${DOCKER_VERSION}.tgz https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz; \
+    tar -xz -C /tmp -f /tmp/docker-${DOCKER_VERSION}.tgz; \
+    mv /tmp/docker/* /usr/bin; \
+    rm /tmp/docker-${DOCKER_VERSION}.tgz; \
+    rm -rf /tmp/docker
+
+# install sonar cli
+ENV SONAR_CLI_VERSION=3.0.3.778
+RUN mkdir -p /opt/sonar; \
+    curl -L -o /tmp/sonar.zip https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_CLI_VERSION}-linux.zip; \
+    unzip -o -d /tmp/sonar-scanner /tmp/sonar.zip; \
+    mv /tmp/sonar-scanner/sonar-scanner-${SONAR_CLI_VERSION}-linux /opt/sonar/scanner; \
+    ln -s -f /opt/sonar/scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner; \
+    rm -rf /tmp/sonar*
+
+# install sonar build wrapper
+RUN curl -L -o /tmp/sonar-build-wrapper.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip; \
+    unzip -o -d /tmp/sonar-build-wrapper /tmp/sonar-build-wrapper.zip; \
+    mv /tmp/sonar-build-wrapper/build-wrapper-linux-x86 /opt/sonar/build-wrapper; \
+    ln -s -f /opt/sonar/build-wrapper/build-wrapper-linux-x86-64 /usr/local/bin/sonar-build-wrapper; \
+    rm -rf /tmp/sonar*
+
+# install latest valgrind
+RUN git clone git://sourceware.org/git/valgrind.git /tmp/valgrind; \
+    (cd /tmp/valgrind ; /tmp/valgrind/autogen.sh); \
+    (cd /tmp/valgrind ; /tmp/valgrind/configure); \
+    make -j${PARALLELISM} -C /tmp/valgrind; \
+    make -C /tmp/valgrind install; \
+    rm -rf /tmp/valgrind
 
 # install ed25519
 RUN git clone git://github.com/hyperledger/iroha-ed25519.git /tmp/ed25519; \
