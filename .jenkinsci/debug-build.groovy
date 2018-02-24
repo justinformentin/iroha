@@ -34,8 +34,7 @@ def doDebugBuild() {
 	    + " -e IROHA_REDIS_HOST=${env.IROHA_REDIS_HOST}"
 	    + " -e IROHA_REDIS_PORT=${env.IROHA_REDIS_PORT}"
 	    + " --network=${env.IROHA_NETWORK}"
-	    + " -v /var/jenkins/ccache:${CCACHE_DIR}"
-	    + " -v /var/jenkins/hunter:${HUNTER_ROOT}") {
+	    + " -v /var/jenkins/ccache:${CCACHE_DIR}") {
 
 	    def scmVars = checkout scm
 	    env.IROHA_VERSION = "0x${scmVars.GIT_COMMIT}"
