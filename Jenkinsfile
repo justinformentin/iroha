@@ -253,3 +253,18 @@ pipeline {
         }
     }
 }
+void createPipelineTriggers() {
+    if (env.BRANCH_NAME == 'feature/ops-experimental-docker') {
+        // Run a nightly only for maste
+        def fnc = load ".jenkinsci/nightly-timer-detect.groovy"
+        startedByTimer = fnc.isJobStartedByTimer()
+        if ( startedByTimer )
+        {
+            sh """
+                echo ================================================================================================
+                echo ===================================THIS JOB IS STARTED BY TIMER=================================
+                echo ================================================================================================
+            """
+        }
+    }
+}
