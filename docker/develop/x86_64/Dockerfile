@@ -25,9 +25,8 @@ RUN apt-get -y --no-install-recommends install build-essential python-software-p
         git ssh tar gzip ca-certificates python3 python3-pip python3-setuptools \
         # code coverage
         lcov \
-        valgrind \
         # other
-        wget file unzip gdb iputils-ping vim ccache \
+        wget curl file unzip gdb iputils-ping vim ccache \
         gcovr cppcheck doxygen graphviz graphviz-dev; \
     apt-get -y clean
 
