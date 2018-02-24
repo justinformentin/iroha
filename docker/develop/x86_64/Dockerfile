@@ -189,8 +189,9 @@ RUN git clone git://github.com/hyperledger/iroha-ed25519.git /tmp/ed25519; \
     ldconfig; \
     rm -rf /tmp/ed25519
 
+RUN apt-get install curl
 # fetch lcov reports converter
-RUN ls /usr/local/bin; ls /usr/bin; whereis curl;curl -L -o /tmp/lcov_cobertura.py https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
+RUN curl -L -o /tmp/lcov_cobertura.py https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
 
 # non-interactive adduser
 #   -m = create home dir
