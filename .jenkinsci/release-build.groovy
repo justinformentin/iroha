@@ -9,10 +9,10 @@ def doReleaseBuild() {
 	// speeds up consequent image builds as we simply tag them 
 	sh "docker pull ${DOCKER_BASE_IMAGE_RELEASE_BUILD}"
 	if (env.BRANCH_NAME == 'master') {
-	    iC = docker.build("hyperledger/iroha:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT}")
+	    iC = docker.build("hyperledger/iroha:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT} --build-arg PARALLELISM=${PARALLELISM}")
 	}
 	else {
-		iC = docker.build("hyperledger/iroha-workflow-release:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT}")
+		iC = docker.build("hyperledger/iroha-workflow-release:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT} --build-arg PARALLELISM=${PARALLELISM}")
 	}
 
 	sh "mkdir /tmp/${env.GIT_COMMIT}-${BUILD_NUMBER}"

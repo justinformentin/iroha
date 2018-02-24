@@ -20,13 +20,13 @@ def doDebugBuild() {
 	// speeds up consequent image builds as we simply tag them 
 	sh "docker pull ${DOCKER_BASE_IMAGE_DEVELOP}"
 	if (env.BRANCH_NAME == 'develop') {
-	    iC = docker.build("hyperledger/iroha-develop:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT}")
+	    iC = docker.build("hyperledger/iroha-develop:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT} --build-arg PARALLELISM=${PARALLELISM}")
 		docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
         	iC.push("${platform}")
         }
 	}
 	else {
-	    iC = docker.build("hyperledger/iroha-workflow:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT}")
+	    iC = docker.build("hyperledger/iroha-workflow:${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT} --build-arg PARALLELISM=${PARALLELISM}")
 	}
 	sh "rm -rf /tmp/${env.GIT_COMMIT}"
 	iC.inside(""
@@ -99,9 +99,6 @@ def doDebugBuild() {
 		    sh "cmake --build build --target test"
 		    sh "cmake --build build --target cppcheck"	    
 		    
-		    // Codecov
-		    //sh "bash <(curl -s https://codecov.io/bash) -f build/reports/gcovr.xml -t ${CODECOV_TOKEN} || echo 'Codecov did not collect coverage reports'"
-
 		    // // Sonar
 		    // if (env.CHANGE_ID != null) {
 		    //     sh """
