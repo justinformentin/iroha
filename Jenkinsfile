@@ -33,7 +33,8 @@ pipeline {
         DOCKERHUB = credentials('DOCKERHUB')
         DOCKER_IMAGE = 'hyperledger/iroha-docker-develop:v1'
         DOCKER_BASE_IMAGE_DEVELOP = 'hyperledger/iroha-docker-develop:v1'
-        DOCKER_BASE_IMAGE_RELEASE = 'hyperledger/iroha-docker'
+        DOCKER_BASE_IMAGE_RELEASE_BUILD = 'hyperledger/iroha-docker-develop:v1'
+        DOCKER_BASE_IMAGE_RELEASE = 'hyperledger/iroha'
 
         IROHA_NETWORK = "iroha-${GIT_COMMIT}-${BUILD_NUMBER}"
         IROHA_POSTGRES_HOST = "pg-${GIT_COMMIT}-${BUILD_NUMBER}"
@@ -62,6 +63,7 @@ pipeline {
                     // Stop same job running builds if any
                     def builds = load ".jenkinsci/cancel-builds-same-job.groovy"
                     builds.cancelSameCommitBuilds()
+                    createPipelineTriggers()
                 }
             }
         }
@@ -73,13 +75,8 @@ pipeline {
                     agent { label 'linux && x86_64' }
                     steps {
                         script {
-                            dockerize = load ".jenkinsci/dockerize.groovy"
                             debugBuild = load ".jenkinsci/debug-build.groovy"
                             debugBuild.doDebugBuild()
-                            // TODO: move to `Release` as we push image only it this case
-                            if ( env.BRANCH_NAME == "master" ) {
-                                dockerize.doDockerize()
-                            }
                         }
                     }
                     post {
@@ -97,13 +94,8 @@ pipeline {
                     agent { label 'arm' }
                     steps {
                         script {
-                            def dockerize = load ".jenkinsci/dockerize.groovy"
                             def debugBuild = load ".jenkinsci/debug-build.groovy"
                             debugBuild.doDebugBuild()
-                            // TODO: move to `Release` as we push image only it this case
-                            if ( env.BRANCH_NAME == "master" ) {
-                                dockerize.doDockerize()
-                            }
                         }
                     }
                     post {
@@ -150,11 +142,6 @@ pipeline {
                             if ( env.BRANCH_NAME == "develop" ) {
                                 //archive(includes: 'build/bin/,compile_commands.json')
                             }
-
-                            sh "lcov --capture --directory build --config-file .lcovrc --output-file build/reports/coverage_full.info"
-                            sh "lcov --remove build/reports/coverage_full.info '/usr/*' 'schema/*' --config-file .lcovrc -o build/reports/coverage_full_filtered.info"
-                            sh "python /tmp/lcov_cobertura.py build/reports/coverage_full_filtered.info -o build/reports/coverage.xml"
-                            cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/build/reports/coverage.xml', conditionalCoverageTargets: '75, 50, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '75, 50, 0', maxNumberOfBuilds: 50, methodCoverageTargets: '75, 50, 0', onlyStable: false, zoomCoverageChart: false
                         }
                     }
                     post {
@@ -172,44 +159,40 @@ pipeline {
             parallel {
                 stage('Linux') {
                     when { expression { return params.Linux } }
+                    agent { label 'linux && x86_64' }
                     steps {
                         script {
-                            // TODO: pull base image release
-                            //sh "docker pull ${DOCKER_BASE_IMAGE_RELEASE}"
-                            def scmVars = checkout scm
-                            env.IROHA_VERSION = "0x${scmVars.GIT_COMMIT}"
+                            def releaseBuild = load ".jenkinsci/release-build.groovy"
+                            releaseBuild.doReleaseBuild()
                         }
-                        sh """
-                            ccache --version
-                            ccache --show-stats
-                            ccache --zero-stats
-                            ccache --max-size=1G
-                        """
-                        sh """
-                            cmake \
-                              -DCOVERAGE=OFF \
-                              -DTESTING=OFF \
-                              -H. \
-                              -Bbuild \
-                              -DCMAKE_BUILD_TYPE=${params.BUILD_TYPE} \
-                              -DPACKAGE_DEB=ON \
-                              -DPACKAGE_TGZ=ON \
-                              -DIROHA_VERSION=${IROHA_VERSION}
-                        """
-                        sh "cmake --build build -- -j${params.PARALLELISM}"
-                        sh "ccache --cleanup"
-                        sh "ccache --show-stats"
-                        sh """
-                        mv build/iroha-{*,linux}.deb && mv build/iroha-{*,linux}.tar.gz
-                        echo ${IROHA_VERSION} > version.txt
-                        """
-                        archive(includes: 'build/iroha-linux.deb,build/iroha-linux.tar.gz,build/version.txt')
+                    }
+                    post {
+                        always {
+                            script {
+                                def cleanup = load ".jenkinsci/docker-cleanup.groovy"
+                                cleanup.doDockerCleanup()
+                                cleanWs()
+                            }
+                        }
                     }
                 }
                 stage('ARM') {
                     when { expression { return params.ARM } }
+                    agent { label 'arm' }
                     steps {
-                        sh "echo ARM build will be running there"
+                        script {
+                            def releaseBuild = load ".jenkinsci/release-build.groovy"
+                            releaseBuild.doReleaseBuild()
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                def cleanup = load ".jenkinsci/docker-cleanup.groovy"
+                                cleanup.doDockerCleanup()
+                                cleanWs()
+                            }
+                        }
                     }                        
                 }
                 stage('MacOS') {
