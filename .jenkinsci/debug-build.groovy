@@ -18,7 +18,7 @@ def doDebugBuild() {
 	sh "curl -L -o /tmp/${env.GIT_COMMIT}/Dockerfile --create-dirs https://raw.githubusercontent.com/hyperledger/iroha/${env.GIT_COMMIT}/docker/develop/${platform}/Dockerfile"
 	// pull docker image in case we don't have one
 	// speeds up consequent image builds as we simply tag them 
-	sh "docker pull ${DOCKER_BASE_IMAGE_DEVELOP}"
+	//sh "docker pull ${DOCKER_BASE_IMAGE_DEVELOP}"
 	if (env.BRANCH_NAME == 'develop') {
 	    iC = docker.build("hyperledger/iroha:develop-${GIT_COMMIT}-${BUILD_NUMBER}", "-f /tmp/${env.GIT_COMMIT}/Dockerfile /tmp/${env.GIT_COMMIT} --build-arg PARALLELISM=${params.PARALLELISM}")
 	}
