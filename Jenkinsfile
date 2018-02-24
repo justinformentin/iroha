@@ -32,7 +32,7 @@ pipeline {
         CODECOV_TOKEN = credentials('CODECOV_TOKEN')
         DOCKERHUB = credentials('DOCKERHUB')
         DOCKER_IMAGE = 'hyperledger/iroha-docker-develop:v1'
-        DOCKER_BASE_IMAGE_DEVELOP = 'hyperledger/iroha-docker-develop:v3'
+        DOCKER_BASE_IMAGE_DEVELOP = 'hyperledger/iroha-docker-develop:v1'
         DOCKER_BASE_IMAGE_RELEASE = 'hyperledger/iroha-docker'
 
         IROHA_NETWORK = "iroha-${GIT_COMMIT}-${BUILD_NUMBER}"
