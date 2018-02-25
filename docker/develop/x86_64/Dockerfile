@@ -202,7 +202,7 @@ RUN curl -L -o /tmp/lcov_cobertura.py https://raw.github.com/eriwen/lcov-to-cobe
 RUN apt-get -y -o Dpkg::Options::="--force-overwrite" install libpcre3-dev autoconf bison python3-dev python-dev openjdk-9-jdk
 
 # Build SWIG
-RUN curl -L -o /tmp/rel-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-3.0.12.tar.gz; \
+RUN curl -L -o /tmp/swig-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-3.0.12.tar.gz; \
     tar -C /tmp -zxf /tmp/swig-3.0.12.tar.gz; \
     cd /tmp/swig-3.0.12; \
     ./configure && make -j${PARALLELISM}; \
