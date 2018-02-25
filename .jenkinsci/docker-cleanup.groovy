@@ -9,9 +9,9 @@ def doDockerCleanup() {
     """
     // Check whether the image is the last-standing man
     // i.e., no other tags exist for this image
-    def numImages = sh(script: "docker images | grep $(docker inspect --format='{{.Config.Image}}' ${iC.id}) | wc -l", returnStdout: true).trim().toInteger()
+    def numImages = sh(script: "docker images | grep ${iC.id} | wc -l", returnStdout: true).trim().toInteger()
     if (numImages > 1) {
-    	sh "docker rmi $(docker inspect --format='{{.Config.Image}}' ${iC.id}) || true"
+    	sh "docker rmi ${iC.id} || true"
     }
 }
 
