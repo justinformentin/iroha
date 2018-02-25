@@ -10,7 +10,7 @@ function(strictmode target)
   if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR
   (CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR
   (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
-    target_compile_options(${target} PRIVATE -Wall -Wpedantic -Werror -Wno-potentially-evaluated-expression)
+    target_compile_options(${target} PRIVATE -Wall -Wpedantic -Werror)
   elseif ((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") OR
   (CMAKE_CXX_COMPILER_ID STREQUAL "Intel"))
     target_compile_options(${target} PRIVATE /W3 /WX)
@@ -19,13 +19,16 @@ function(strictmode target)
   endif ()
 endfunction()
 
-# Creates test "test_name", with "SOURCES" (use string as second argument)
-function(addtest test_name SOURCES)
+# Creates test "test_name"
+function(addtest test_name)
   if (COVERAGE)
     set(test_xml_output --gtest_output=xml:${REPORT_DIR}/xunit-${test_name}.xml)
   endif ()
-  add_executable(${test_name} ${SOURCES})
-  target_link_libraries(${test_name} gtest gmock)
+  add_executable(${test_name} ${ARGN})
+  target_link_libraries(${test_name}
+      gtest
+      gmock
+      )
   target_include_directories(${test_name} PUBLIC ${PROJECT_SOURCE_DIR}/test)
   add_test(
       NAME ${test_name}
@@ -147,4 +150,15 @@ function(JOIN VALUES GLUE OUTPUT)
   string (REGEX REPLACE "([^\\]|^);" "\\1${GLUE}" _TMP_STR "${VALUES}")
   string (REGEX REPLACE "[\\](.)" "\\1" _TMP_STR "${_TMP_STR}") #fixes escaping
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
+endfunction()
+
+# if compiler supports flag FLAG1, then OUT=FLAG1, else OUT=FLAG2
+function(test_flag_support_or_fallback OUT FLAG1 FLAG2)
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(${FLAG1} has_${FLAG1})
+  if(has_${FLAG1})
+    set(${OUT} ${FLAG1} PARENT_SCOPE)
+  else()
+    set(${OUT} ${FLAG2} PARENT_SCOPE)
+  endif()
 endfunction()

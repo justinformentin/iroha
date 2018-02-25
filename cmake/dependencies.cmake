@@ -12,7 +12,10 @@ else()
   set(XCODE_EXT "")
 endif()
 
-# Project dependencies.
+
+###################################################################
+##### START OF PROJECT DEPENDENCIES
+
 find_package(Threads REQUIRED)
 
 ##########################
