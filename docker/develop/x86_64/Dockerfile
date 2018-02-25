@@ -199,7 +199,7 @@ RUN git clone git://github.com/hyperledger/iroha-ed25519.git /tmp/ed25519; \
 RUN curl -L -o /tmp/lcov_cobertura.py https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
 
 # SWIG dependencies
-RUN apt-get -y install libpcre3-dev autoconf bison python3-dev python-dev openjdk-9-jdk
+RUN apt-get -y -o Dpkg::Options::="--force-overwrite" install libpcre3-dev autoconf bison python3-dev python-dev openjdk-9-jdk
 
 # Build SWIG
 RUN curl -L -o /tmp/rel-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-3.0.12.tar.gz; \
