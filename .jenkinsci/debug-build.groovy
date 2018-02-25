@@ -50,79 +50,44 @@ def doDebugBuild() {
 	        ccache --show-stats
 	        ccache --zero-stats
 	        ccache --max-size=5G
+	    """	
+	    sh """
+	        cmake \
+	          -DCOVERAGE=ON \
+	          -DTESTING=ON \
+	          -H. \
+	          -Bbuild \
+	          -DCMAKE_BUILD_TYPE=${params.BUILD_TYPE} \
+	          -DIROHA_VERSION=${env.IROHA_VERSION}
 	    """
-	    def cmake_options = ""
-		if (params.JavaBindings) {
-    		cmake_options += " -DSWIG_JAVA=ON "
-    	}
-    	if (params.PythonBindings) {
-    		cmake_options += " -DSWIG_PYTHON=ON "
-    	}
-	    if (params.BindingsOnly) {
-	    	// In case language specific options were not set,
-	    	// build for every language
-	    	if (!params.JavaBindings && !params.PythonBindings) {
-	    		cmake_options += " -DSWIG_JAVA=ON -DSWIG_PYTHON=ON "
-	    	}
-	    	sh """
-	    		cmake \
-	    		  -H. \
-	    		  -Bbuild \
-	    		  ${cmake_options}
-	    	"""
-	    	sh "cmake --build build --target irohajava -- -j${params.PARALLELISM}"
-	    	sh "cmake --build build --target irohapy -- -j${params.PARALLELISM}"
-	    	archive(includes: 'build/shared_model/bindings/')
-	    }
-	    else {	    
-		    sh """
-		        cmake \
-		          -DCOVERAGE=ON \
-		          -DTESTING=ON \
-		          -H. \
-		          -Bbuild \
-		          -DCMAKE_BUILD_TYPE=${params.BUILD_TYPE} \
-		          -DIROHA_VERSION=${env.IROHA_VERSION} \
-		          ${cmake_options}
-		    """
-		    // sh "cmake --build build -- -j${params.PARALLELISM}"
-		    // sh "ccache --show-stats"
-		    if (params.JavaBindings) {
-		    	sh "cmake --build build --target irohajava -- -j${params.PARALLELISM}"
-		    	// TODO: publish artifacts
+	    sh "cmake --build build -- -j${params.PARALLELISM}"
+	    sh "ccache --show-stats"
+	    // sh "cmake --build build --target test"
+	    // sh "cmake --build build --target cppcheck"	    
+	    
+	    // // Sonar
+	    // if (env.CHANGE_ID != null) {
+	    //     sh """
+	    //         sonar-scanner \
+	    //             -Dsonar.github.disableInlineComments \
+	    //             -Dsonar.github.repository='hyperledger/iroha' \
+	    //             -Dsonar.analysis.mode=preview \
+	    //             -Dsonar.login=${SONAR_TOKEN} \
+	    //             -Dsonar.projectVersion=${BUILD_TAG} \
+	    //             -Dsonar.github.oauth=${SORABOT_TOKEN} \
+	    //             -Dsonar.github.pullRequest=${CHANGE_ID}
+	    //     """
+	    // }
 
-		    }
-		    if (params.PythonBindings) {
-		    	sh "cmake --build build --target irohapy -- -j${params.PARALLELISM}"
-		    	// TODO: publish artifacts
-		    }
-		    // sh "cmake --build build --target test"
-		    // sh "cmake --build build --target cppcheck"	    
-		    
-		    // // Sonar
-		    // if (env.CHANGE_ID != null) {
-		    //     sh """
-		    //         sonar-scanner \
-		    //             -Dsonar.github.disableInlineComments \
-		    //             -Dsonar.github.repository='hyperledger/iroha' \
-		    //             -Dsonar.analysis.mode=preview \
-		    //             -Dsonar.login=${SONAR_TOKEN} \
-		    //             -Dsonar.projectVersion=${BUILD_TAG} \
-		    //             -Dsonar.github.oauth=${SORABOT_TOKEN} \
-		    //             -Dsonar.github.pullRequest=${CHANGE_ID}
-		    //     """
-		    // }
-
-		    // TODO: replace with upload to artifactory server
-	        // only develop branch
-	        if ( env.BRANCH_NAME == "develop" ) {
-	            //archive(includes: 'build/bin/,compile_commands.json')
-	        }
-		    // sh "lcov --capture --directory build --config-file .lcovrc --output-file build/reports/coverage_full.info"
-		    // sh "lcov --remove build/reports/coverage_full.info '/usr/*' 'schema/*' --config-file .lcovrc -o build/reports/coverage_full_filtered.info"
-		    // sh "python /tmp/lcov_cobertura.py build/reports/coverage_full_filtered.info -o build/reports/coverage.xml"                                
-		    // cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/build/reports/coverage.xml', conditionalCoverageTargets: '75, 50, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '75, 50, 0', maxNumberOfBuilds: 50, methodCoverageTargets: '75, 50, 0', onlyStable: false, zoomCoverageChart: false
-	    }
+	    // TODO: replace with upload to artifactory server
+        // only develop branch
+        if ( env.BRANCH_NAME == "develop" ) {
+            //archive(includes: 'build/bin/,compile_commands.json')
+        }
+	    // sh "lcov --capture --directory build --config-file .lcovrc --output-file build/reports/coverage_full.info"
+	    // sh "lcov --remove build/reports/coverage_full.info '/usr/*' 'schema/*' --config-file .lcovrc -o build/reports/coverage_full_filtered.info"
+	    // sh "python /tmp/lcov_cobertura.py build/reports/coverage_full_filtered.info -o build/reports/coverage.xml"                                
+	    // cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/build/reports/coverage.xml', conditionalCoverageTargets: '75, 50, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '75, 50, 0', maxNumberOfBuilds: 50, methodCoverageTargets: '75, 50, 0', onlyStable: false, zoomCoverageChart: false
 	}
 }
 return this

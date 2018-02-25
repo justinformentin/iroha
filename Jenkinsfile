@@ -12,17 +12,14 @@
 //   |            |----Release
 properties([parameters([
     choice(choices: 'Debug\nRelease', description: '', name: 'BUILD_TYPE'),
-    booleanParam(defaultValue: true, description: '', name: 'Linux'),
+    booleanParam(defaultValue: false, description: '', name: 'Linux'),
     booleanParam(defaultValue: false, description: '', name: 'ARM'),
     booleanParam(defaultValue: false, description: '', name: 'MacOS'),
     booleanParam(defaultValue: true, description: 'Whether build docs or not', name: 'Doxygen'),
     booleanParam(defaultValue: false, description: 'Whether build Java bindings', name: 'JavaBindings'),
     booleanParam(defaultValue: false, description: 'Whether build Python bindings', name: 'PythonBindings'),
-    booleanParam(defaultValue: false, description: 'Whether build bindings only w/o Iroha itself', name: 'BindingsOnly'),
+    booleanParam(defaultValue: true, description: 'Whether build bindings only w/o Iroha itself', name: 'BindingsOnly'),
     string(defaultValue: '4', description: 'How much parallelism should we exploit. "4" is optimal for machines with modest amount of memory and at least 4 cores', name: 'PARALLELISM')])])
-
-// Trigger Develop build every day
-String nightlyBuild = BRANCH_NAME == "develop" ? "@midnight" : ""
 
 pipeline {
     environment {
@@ -44,14 +41,11 @@ pipeline {
         IROHA_POSTGRES_PORT = 5432
         IROHA_REDIS_PORT = 6379
     }
+
     options {
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
-    // triggers {
-    //     parameterizedCron('''
-    //         nightlyBuild %ARM=True;MacOS=True
-    //     ''')
-    // }
+
     agent any
     stages {
         stage ('Stop same job builds') {
@@ -66,7 +60,12 @@ pipeline {
             }
         }
         stage('Build Debug') {
-            when { expression { params.BUILD_TYPE == 'Debug' } }
+            when {
+                allOf {
+                    expression { params.BUILD_TYPE == 'Debug' }
+                    expression { return !params.BindingsOnly }
+                }                
+            }
             parallel {
                 stage ('Linux') {
                     when { expression { return params.Linux } }
@@ -153,7 +152,12 @@ pipeline {
             }
         }
         stage('Build Release') {
-            when { expression { params.BUILD_TYPE == 'Release' } }
+            when {
+                allOf {
+                    expression { params.BUILD_TYPE == 'Release' }
+                    expression { return ! params.BindingsOnly }
+                }                
+            }
             parallel {
                 stage('Linux') {
                     when { expression { return params.Linux } }
@@ -221,7 +225,7 @@ pipeline {
         stage('Build docs') {
             // build docs on any vacant node. Prefer `linux` over
             // others as nodes are more powerful
-            agent { label 'linux || mac || arm' }
+            agent { label 'linux || arm' }
             when {
                 allOf {
                     expression { return params.Doxygen }
@@ -238,15 +242,23 @@ pipeline {
                 }
             }
         }
-    }
-    post {
-        always {
-            script {
-                sh """
-                  docker stop $IROHA_POSTGRES_HOST $IROHA_REDIS_HOST || true
-                  docker rm $IROHA_POSTGRES_HOST $IROHA_REDIS_HOST || true
-                  docker network rm $IROHA_NETWORK || true
-                """
+        stage('Build bindings') {
+            agent { label 'linux' }
+            when {
+                anyOf {
+                    expression { return params.BindingsOnly }
+                    expression { return params.PythonBindings }
+                    expression { return params.JavaBindings }
+                }
+            }
+            steps {
+                script {
+                    def bindings = load ".jenkinsci/bindings.groovy"
+                    docker.image("${env.DOCKER_IMAGE}").inside {
+                        def scmVars = checkout scm
+                        bindings.doBindings()
+                    }
+                }
             }
         }
     }
