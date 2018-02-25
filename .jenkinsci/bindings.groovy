@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-def doDockerCleanup() {
+def doBindings() {
 
     def cmake_options = ""
     if (params.JavaBindings) {
