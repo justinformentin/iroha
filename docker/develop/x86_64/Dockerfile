@@ -208,6 +208,10 @@ RUN curl -L -o /tmp/swig-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-
     ./autogen.sh && ./configure && make -j${PARALLELISM}; \
     make install
 
+RUN add-apt-repository -y ppa:jonathonf/python-3.6; \
+    apt-get update; \
+    apt-get install python3.6-dev
+
 # non-interactive adduser
 #   -m = create home dir
 #   -s = set default shell
