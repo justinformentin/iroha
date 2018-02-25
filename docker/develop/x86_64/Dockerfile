@@ -204,7 +204,7 @@ RUN apt-get -y -o Dpkg::Options::="--force-overwrite" install libpcre3-dev autoc
 # Build SWIG
 RUN curl -L -o /tmp/swig-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-3.0.12.tar.gz; \
     tar -C /tmp -zxf /tmp/swig-3.0.12.tar.gz; \
-    cd /tmp/swig-3.0.12; \
+    cd /tmp/swig-rel-3.0.12; \
     ./configure && make -j${PARALLELISM}; \
     make install
 
