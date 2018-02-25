@@ -235,5 +235,8 @@ WORKDIR /opt/iroha
 RUN chmod -R 777 /opt/iroha; \
     mkdir -p /tmp/ccache -m 777;
 
+# set JAVA_HOME
+RUN echo "JAVA_HOME=/usr/lib/jvm/java-9-openjdk-amd64" >> /etc/environment && source /etc/environment; echo "JAVA_HOME is: $JAVA_HOME"
+
 USER iroha-ci
 CMD ["/bin/bash"]
