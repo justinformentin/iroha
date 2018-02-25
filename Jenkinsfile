@@ -223,9 +223,9 @@ pipeline {
             }
         }
         stage('Build docs') {
-            // build docs on any vacant node. Prefer `linux` over
+            // build docs on any vacant node. Prefer `x86_64` over
             // others as nodes are more powerful
-            agent { label 'linux || arm' }
+            agent { label 'x86_64 || arm' }
             when {
                 allOf {
                     expression { return params.Doxygen }
@@ -243,7 +243,7 @@ pipeline {
             }
         }
         stage('Build bindings') {
-            agent { label 'linux' }
+            agent { label 'x86_64' }
             when {
                 anyOf {
                     expression { return params.BindingsOnly }

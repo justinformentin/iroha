@@ -195,9 +195,18 @@ RUN git clone git://github.com/hyperledger/iroha-ed25519.git /tmp/ed25519; \
     ldconfig; \
     rm -rf /tmp/ed25519
 
-RUN apt-get install curl
 # fetch lcov reports converter
 RUN curl -L -o /tmp/lcov_cobertura.py https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
+
+# SWIG dependencies
+RUN apt-get -y install libpcre3-dev autoconf bison python3-dev python-dev openjdk-9-jdk
+
+# Build SWIG
+RUN curl -L -o /tmp/rel-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-3.0.12.tar.gz; \
+    tar -C /tmp -zxf /tmp/swig-3.0.12.tar.gz; \
+    cd /tmp/swig-3.0.12; \
+    ./configure && make -j${PARALLELISM}; \
+    make install
 
 # non-interactive adduser
 #   -m = create home dir
