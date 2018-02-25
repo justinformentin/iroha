@@ -206,11 +206,21 @@ RUN curl -L -o /tmp/swig-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-
     tar -C /tmp -zxf /tmp/swig-3.0.12.tar.gz; \
     cd /tmp/swig-rel-3.0.12; \
     ./autogen.sh && ./configure && make -j${PARALLELISM}; \
-    make install
+    make install; \
+    rm -rf /tmp/swig-rel-3.0.12
 
 RUN add-apt-repository -y ppa:jonathonf/python-3.6; \
     apt-get update; \
     apt-get -y install python3.6-dev
+
+
+# install cmake 3.8.2
+RUN git clone https://gitlab.kitware.com/cmake/cmake.git /tmp/cmake; \
+    (cd /tmp/cmake ; git checkout 0d5a2252ef8a586f4fc70a66aabd17fb3fd52110); \
+    (cd /tmp/cmake ; /tmp/cmake/bootstrap --parallel=${PARALLELISM} --enable-ccache); \
+    make -j${PARALLELISM} -C /tmp/cmake; \
+    make -C /tmp/cmake install; \
+    rm -rf /tmp/cmake
 
 # non-interactive adduser
 #   -m = create home dir
