@@ -240,9 +240,7 @@ WORKDIR /opt/iroha
 RUN chmod -R 777 /opt/iroha; \
     mkdir -p /tmp/ccache -m 777;
 
-RUN echo "JAVA_HOME as root: $JAVA_HOME"
-
 USER iroha-ci
 
-RUN echo "JAVA_HOME as user is: $JAVA_HOME"
+RUN export JAVA_HOME=/usr/lib/jvm/java-8-oracle
 CMD ["/bin/bash"]
