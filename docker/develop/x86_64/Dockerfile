@@ -199,7 +199,13 @@ RUN git clone git://github.com/hyperledger/iroha-ed25519.git /tmp/ed25519; \
 RUN curl -L -o /tmp/lcov_cobertura.py https://raw.github.com/eriwen/lcov-to-cobertura-xml/master/lcov_cobertura/lcov_cobertura.py
 
 # SWIG dependencies
-RUN apt-get -y -o Dpkg::Options::="--force-overwrite" install libpcre3-dev autoconf bison python3-dev python-dev openjdk-9-jdk
+RUN apt-get -y install libpcre3-dev autoconf bison python3-dev python-dev
+
+RUN add-apt-repository -y ppa:webupd8team/java; \
+    apt-get update; \
+    echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections; \
+    apt-get -y install oracle-java8-installer; \
+    java -version
 
 # Build SWIG
 RUN curl -L -o /tmp/swig-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-3.0.12.tar.gz; \
@@ -212,7 +218,6 @@ RUN curl -L -o /tmp/swig-3.0.12.tar.gz https://github.com/swig/swig/archive/rel-
 RUN add-apt-repository -y ppa:jonathonf/python-3.6; \
     apt-get update; \
     apt-get -y install python3.6-dev
-
 
 # install cmake 3.8.2
 RUN git clone https://gitlab.kitware.com/cmake/cmake.git /tmp/cmake; \
@@ -234,9 +239,6 @@ RUN useradd -ms /bin/bash iroha-ci -u 1000 -U
 WORKDIR /opt/iroha
 RUN chmod -R 777 /opt/iroha; \
     mkdir -p /tmp/ccache -m 777;
-
-# set JAVA_HOME
-RUN export JAVA_HOME=/usr/lib/jvm/java-9-openjdk-amd64; echo "JAVA_HOME is: $JAVA_HOME"
 
 USER iroha-ci
 CMD ["/bin/bash"]
