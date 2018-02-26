@@ -29,6 +29,28 @@
 
 namespace shared_model {
   namespace proto {
+    using boost::multiprecision::uint256_t;
+
+    template <typename AmountType>
+    uint256_t convertToUInt256(const AmountType &amount) {
+      constexpr auto offset = 64u;
+      uint256_t result;
+      result |= uint256_t{amount.first()} << offset * 3;
+      result |= uint256_t{amount.second()} << offset * 2;
+      result |= uint256_t{amount.third()} << offset;
+      result |= uint256_t{amount.fourth()};
+      return result;
+    }
+
+    template <typename ValueType>
+    void convertToProtoAmount(ValueType &value, const uint256_t &amount) {
+      constexpr auto offset = 64u;
+      value.set_first((amount >> offset * 3).template convert_to<uint64_t>());
+      value.set_second((amount >> offset * 2).template convert_to<uint64_t>());
+      value.set_third((amount >> offset).template convert_to<uint64_t>());
+      value.set_fourth(amount.template convert_to<uint64_t>());
+    }
+
     class Amount final : public CopyableProto<interface::Amount,
                                               iroha::protocol::Amount,
                                               Amount> {
@@ -36,24 +58,15 @@ namespace shared_model {
       template <typename AmountType>
       explicit Amount(AmountType &&amount)
           : CopyableProto(std::forward<AmountType>(amount)),
-            multiprecision_repr_([this] {
-              const auto offset = 64u;
-              auto times = 3u;
-              const auto &value = proto_->value();
-              boost::multiprecision::uint256_t result;
-              result |= value.first() << offset * times--;
-              result |= value.second() << offset * times--;
-              result |= value.third() << offset * times--;
-              result |= value.fourth() << offset * times--;
-              return result;
-            }),
+            multiprecision_repr_(
+                [this] { return convertToUInt256(proto_->value()); }),
             blob_([this] { return makeBlob(*proto_); }) {}
 
       Amount(const Amount &o) : Amount(o.proto_) {}
 
       Amount(Amount &&o) noexcept : Amount(std::move(o.proto_)) {}
 
-      const boost::multiprecision::uint256_t &intValue() const override {
+      const uint256_t &intValue() const override {
         return *multiprecision_repr_;
       }
 
@@ -74,7 +87,6 @@ namespace shared_model {
 
       const Lazy<BlobType> blob_;
     };
-
   }  // namespace proto
 }  // namespace shared_model
 #endif  // IROHA_PROTO_AMOUNT_HPP
