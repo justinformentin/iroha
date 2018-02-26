@@ -17,6 +17,8 @@
 
 #ifndef IROHA_WSV_QUERY_HPP
 #define IROHA_WSV_QUERY_HPP
+
+#include <nonstd/optional.hpp>
 #include <string>
 #include <vector>
 
