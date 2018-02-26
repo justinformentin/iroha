@@ -44,21 +44,23 @@ class TxPipelineIntegrationTest : public TxPipelineIntegrationTestFixture {
     manager = std::make_shared<iroha::KeysManagerImpl>("node0");
     auto keypair = manager->loadKeys().value();
 
-    irohad = std::make_shared<TestIrohad>(
-        block_store_path,
-        pgopt_,
-        0,
-        10001,
-        10,
-        5000ms,
-        5000ms,
-        5000ms,
-        keypair);
+    irohad = std::make_shared<TestIrohad>(block_store_path,
+                                          pgopt_,
+                                          0,
+                                          10001,
+                                          10,
+                                          5000ms,
+                                          5000ms,
+                                          5000ms,
+                                          keypair);
 
     ASSERT_TRUE(irohad->storage);
 
     // insert genesis block
     irohad->storage->insertBlock(genesis_block);
+
+    // reset ordering storage state
+    irohad->resetOrderingService();
 
     // initialize irohad
     irohad->init();
@@ -155,7 +157,7 @@ const shared_model::crypto::Keypair kAdminKeypair(
  * @given GetAccount query
  * AND default-initialized IntegrationTestFramework
  * @when query is sent to the framework
- * @then no error occurs
+ * @then query response is ErrorResponse with STATEFUL_INVALID reason
  */
 TEST(PipelineIntegrationTest, SendQuery) {
   auto query = shared_model::proto::QueryBuilder()
@@ -167,9 +169,19 @@ TEST(PipelineIntegrationTest, SendQuery) {
                    .signAndAddSignature(
                        shared_model::crypto::DefaultCryptoAlgorithmType::
                            generateKeypair());
+
+  auto check = [](auto &status) {
+    using ExpectedResponseType = shared_model::detail::PolymorphicWrapper<
+        shared_model::interface::ErrorQueryResponse>;
+    using ExpectedReasonType = shared_model::detail::PolymorphicWrapper<
+        shared_model::interface::StatefulFailedErrorResponse>;
+    ASSERT_NO_THROW(boost::get<ExpectedResponseType>(status.get()));
+    ASSERT_NO_THROW(boost::get<ExpectedReasonType>(
+        boost::get<ExpectedResponseType>(status.get())->get()));
+  };
   integration_framework::IntegrationTestFramework()
       .setInitialState(kAdminKeypair)
-      .sendQuery(query)
+      .sendQuery(query, check)
       .done();
 }
 
@@ -177,6 +189,7 @@ TEST(PipelineIntegrationTest, SendQuery) {
  * @given some user
  * @when sending sample AddAssetQuantity transaction to the ledger
  * @then receive STATELESS_VALIDATION_SUCCESS status on that tx
+ * @and wait for proposal and block
  */
 TEST(PipelineIntegrationTest, SendTx) {
   auto tx = shared_model::proto::TransactionBuilder()
@@ -189,13 +202,21 @@ TEST(PipelineIntegrationTest, SendTx) {
                     shared_model::crypto::DefaultCryptoAlgorithmType::
                         generateKeypair());
 
-  auto check = [](auto &status) {
+  auto checkStatelessValid = [](auto &status) {
     ASSERT_NO_THROW(
         boost::get<shared_model::detail::PolymorphicWrapper<
             shared_model::interface::StatelessValidTxResponse>>(status.get()));
   };
+  auto checkProposal = [](auto &proposal) {
+    ASSERT_EQ(proposal->transactions.size(), 1);
+  };
+  auto checkBlock = [](auto &block) {
+    ASSERT_EQ(block->transactions.size(), 0);
+  };
   integration_framework::IntegrationTestFramework()
       .setInitialState(kAdminKeypair)
-      .sendTx(tx, check)
+      .sendTx(tx, checkStatelessValid)
+      .checkProposal(checkProposal)
+      .checkBlock(checkBlock)
       .done();
 }

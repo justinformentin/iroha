@@ -20,25 +20,31 @@
 
 #include "backend/protobuf/common_objects/amount.hpp"
 #include "primitive.pb.h"
-#include "utils/polymorphic_wrapper.hpp"
 
 namespace shared_model {
   namespace proto {
+
+    /**
+     * AmountBuilder is used to construct Amount proto objects with initialized
+     * protobuf implementation
+     */
     class AmountBuilder {
      public:
       shared_model::proto::Amount build() {
-        return shared_model::proto::Amount(amount_);
+        return shared_model::proto::Amount(iroha::protocol::Amount(amount_));
       }
 
-      AmountBuilder &intValue(const boost::multiprecision::uint256_t &value) {
-        // TODO: add proper initialization
-        amount_.mutable_value()->set_fourth(value.template convert_to<uint64_t>());
-        return *this;
+      AmountBuilder intValue(const boost::multiprecision::uint256_t &value) {
+        // TODO: 14.02.2018 nickaleks add proper amount initialization IR-972
+        AmountBuilder copy(*this);
+        copy.amount_.mutable_value()->set_fourth(value.template convert_to<uint64_t>());
+        return copy;
       }
 
-      AmountBuilder &precision(const interface::types::PrecisionType &precision) {
-        amount_.set_precision(precision);
-        return *this;
+      AmountBuilder precision(const interface::types::PrecisionType &precision) {
+        AmountBuilder copy(*this);
+        copy.amount_.set_precision(precision);
+        return copy;
       }
 
      private:

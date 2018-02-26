@@ -20,31 +20,38 @@
 
 #include "backend/protobuf/common_objects/asset.hpp"
 #include "responses.pb.h"
-#include "utils/polymorphic_wrapper.hpp"
 
 namespace shared_model {
   namespace proto {
+
+    /**
+     * AssetBuilder is used to construct Asset proto objects with initialized
+     * protobuf implementation
+     */
     class AssetBuilder {
      public:
       shared_model::proto::Asset build() {
-        return shared_model::proto::Asset(asset_);
+        return shared_model::proto::Asset(iroha::protocol::Asset(asset_));
       }
 
-      AssetBuilder &assetId(
+      AssetBuilder assetId(
           const interface::types::AssetIdType &asset_id) {
-        asset_.set_asset_id(asset_id);
-        return *this;
+        AssetBuilder copy(*this);
+        copy.asset_.set_asset_id(asset_id);
+        return copy;
       }
 
-      AssetBuilder &domainId(
+      AssetBuilder domainId(
           const interface::types::DomainIdType &domain_id) {
-        asset_.set_domain_id(domain_id);
-        return *this;
+        AssetBuilder copy(*this);
+        copy.asset_.set_domain_id(domain_id);
+        return copy;
       }
 
-      AssetBuilder &precision(const interface::types::PrecisionType &precision) {
-        asset_.set_precision(precision);
-        return *this;
+      AssetBuilder precision(const interface::types::PrecisionType &precision) {
+        AssetBuilder copy(*this);
+        copy.asset_.set_precision(precision);
+        return copy;
       }
 
      private:

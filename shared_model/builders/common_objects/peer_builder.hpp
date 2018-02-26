@@ -21,42 +21,47 @@
 #include "builders/common_objects/common.hpp"
 #include "interfaces/common_objects/peer.hpp"
 
+// TODO: 14.02.2018 nickaleks Add check for uninitialized fields IR-972
+
 namespace shared_model {
   namespace builder {
+
+    /**
+     * PeerBuilder is a class, used for construction of Peer objects
+     * @tparam BuilderImpl is a type, which defines builder for implementation
+     * of shared_model. Since we return abstract classes, it is necessary for
+     * them to be instantiated with some concrete implementation
+     * @tparam Validator is a type, whose responsibility is
+     * to perform stateless validation on model fields
+     */
     template <typename BuilderImpl, typename Validator>
-    class PeerBuilder {
+    class PeerBuilder
+        : public CommonObjectBuilder<interface::Peer, BuilderImpl, Validator> {
      public:
-      BuilderResult<shared_model::interface::Peer> build() {
-        auto peer = builder_.build();
-        shared_model::validation::ReasonsGroupType reasons(
-            "Peer Builder", shared_model::validation::GroupedReasons());
-        shared_model::validation::Answer answer;
-        validator_.validatePeer(reasons, peer);
-
-        if (!reasons.second.empty()) {
-          answer.addReason(std::move(reasons));
-          return iroha::expected::makeError(
-              std::make_shared<std::string>(answer.reason()));
-        }
-        std::shared_ptr<shared_model::interface::Peer> peer_ptr(peer.copy());
-        return iroha::expected::makeValue(
-            shared_model::detail::PolymorphicWrapper<
-                shared_model::interface::Peer>(peer_ptr));
+      PeerBuilder address(const interface::types::AddressType &address) {
+        PeerBuilder copy(*this);
+        copy.builder_ = this->builder_.address(address);
+        return copy;
       }
 
-      PeerBuilder &address(const interface::types::AddressType &address) {
-        builder_ = builder_.address(address);
-        return *this;
+      PeerBuilder pubkey(const interface::types::PubkeyType &key) {
+        PeerBuilder copy(*this);
+        copy.builder_ = this->builder_.pubkey(key);
+        return copy;
       }
 
-      PeerBuilder &pubkey(const interface::types::PubkeyType &key) {
-        builder_ = builder_.pubkey(key);
-        return *this;
+     protected:
+      virtual std::string builderName() const override {
+        return "Peer Builder";
       }
 
-     private:
-      Validator validator_;
-      BuilderImpl builder_;
+      virtual validation::ReasonsGroupType validate(
+          const interface::Peer &object) override {
+        validation::ReasonsGroupType reasons;
+        this->validator_.validatePeer(reasons, object);
+
+        return reasons;
+      }
     };
   }  // namespace builder
 }  // namespace shared_model

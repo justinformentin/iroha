@@ -16,7 +16,6 @@
  */
 
 #include "ametsuchi/impl/mutable_storage_impl.hpp"
-
 #include <memory>
 #include "ametsuchi/impl/postgres_block_index.hpp"
 #include "ametsuchi/impl/postgres_wsv_command.hpp"
@@ -86,7 +85,7 @@ namespace iroha {
 
       if (result) {
         block_store_.insert(std::make_pair(block->height, *block));
-        block_index_->index(*block);
+        block_index_->index(new_block);
 
         top_hash_ = block->hash;
         transaction_->exec("RELEASE SAVEPOINT savepoint_;");
