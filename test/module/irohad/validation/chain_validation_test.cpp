@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-#include "builders/common_objects/signature_builder.hpp"
-#include "builders/protobuf/builder_templates/block_template.hpp"
-#include "builders/protobuf/common_objects/proto_signature_builder.hpp"
+#include "builders/protobuf/block.hpp"
 #include "module/irohad/ametsuchi/ametsuchi_mocks.hpp"
 #include "module/irohad/model/model_mocks.hpp"
 #include "validation/impl/chain_validator_impl.hpp"
@@ -42,11 +40,6 @@ class ChainValidationTest : public ::testing::Test {
     validator = std::make_shared<ChainValidatorImpl>();
     storage = std::make_shared<MockMutableStorage>();
     query = std::make_shared<MockWsvQuery>();
-
-    // TODO: 14-02-2018 Alexey Chernyshov remove after replacement
-    // with shared_model https://soramitsu.atlassian.net/browse/IR-903
-    std::copy(
-        public_key.blob().begin(), public_key.blob().end(), peer.pubkey.data());
     peers = std::vector<Peer>{peer};
   }
 
@@ -55,59 +48,42 @@ class ChainValidationTest : public ::testing::Test {
    * @return block builder
    */
   auto getBlockBuilder() const {
-    constexpr auto kTotal = (1 << 5) - 1;
-    return shared_model::proto::TemplateBlockBuilder<
-               kTotal,
-               shared_model::validation::DefaultBlockValidator,
-               shared_model::proto::Block>()
+    return shared_model::proto::BlockBuilder()
+        .transactions(std::vector<shared_model::proto::Transaction>{})
         .txNumber(0)
         .height(1)
         .prevHash(hash)
         .createdTime(iroha::time::now());
   }
 
-  /**
-   * Add signature to the block.
-   */
-  void addSignature(shared_model::interface::Block &block,
-                    shared_model::interface::types::PubkeyType &pubkey) {
-    shared_model::builder::SignatureBuilder<
-        shared_model::proto::SignatureBuilder,
-        shared_model::validation::FieldValidator>
-        builder;
-    auto signature = builder.publicKey(pubkey).build();
-
-    signature.match(
-        [&](shared_model::builder::BuilderResult<
-            shared_model::interface::Signature>::ValueType &sig) {
-          block.addSignature(sig.value);
-        },
-        [](shared_model::builder::BuilderResult<
-            shared_model::interface::Signature>::ErrorType &e) {
-          FAIL() << *e.error;
-        });
-  }
-
-  shared_model::interface::types::PubkeyType public_key =
-      shared_model::interface::types::PubkeyType(std::string(32, '2'));
-
-  // TODO: 14-02-2018 Alexey Chernyshov remove after replacement
-  // with shared_model https://soramitsu.atlassian.net/browse/IR-903
+  // TODO: 14-02-2018 Alexey Chernyshov make sure peer has valid key after
+  // replacement with shared_model https://soramitsu.atlassian.net/browse/IR-903
   Peer peer;
   std::vector<Peer> peers;
 
   shared_model::crypto::Hash hash =
       shared_model::crypto::Hash(std::string(32, '0'));
 
+  /**
+   * Valid key
+   */
+  shared_model::crypto::Keypair key = shared_model::crypto::Keypair(
+      shared_model::crypto::PublicKey(std::string(32, '\0')),
+      shared_model::crypto::PrivateKey(std::string(32, '\0')));
+
   std::shared_ptr<ChainValidatorImpl> validator;
   std::shared_ptr<MockMutableStorage> storage;
   std::shared_ptr<MockWsvQuery> query;
 };
 
+/**
+ * @given valid block signed by peers
+ * @when apply block
+ * @then block is validated
+ */
 TEST_F(ChainValidationTest, ValidCase) {
   // Valid previous hash, has supermajority, correct peers subset => valid
-  auto block = getBlockBuilder().build();
-  addSignature(block, public_key);
+  auto block = getBlockBuilder().build().signAndAddSignature(key);
 
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
@@ -117,10 +93,14 @@ TEST_F(ChainValidationTest, ValidCase) {
   ASSERT_TRUE(validator->validateBlock(block, *storage));
 }
 
+/**
+ * @given block with wrong hash signed by peers
+ * @when apply block
+ * @then block is not validated
+ */
 TEST_F(ChainValidationTest, FailWhenDifferentPrevHash) {
   // Invalid previous hash, has supermajority, correct peers subset => invalid
-  auto block = getBlockBuilder().build();
-  addSignature(block, public_key);
+  auto block = getBlockBuilder().build().signAndAddSignature(key);
 
   shared_model::crypto::Hash another_hash =
       shared_model::crypto::Hash(std::string(32, '1'));
@@ -134,10 +114,17 @@ TEST_F(ChainValidationTest, FailWhenDifferentPrevHash) {
   ASSERT_FALSE(validator->validateBlock(block, *storage));
 }
 
+/**
+ * @given valid block signed by one peer of two peers (no supermajority)
+ * @when apply block
+ * @then block is not validated
+ */
 TEST_F(ChainValidationTest, FailWhenNoSupermajority) {
   // Valid previous hash, no supermajority, correct peers subset => invalid
-  auto block = getBlockBuilder().build();
+  auto block = getBlockBuilder().build().signAndAddSignature(key);
 
+  Peer another_peer;
+  peers.push_back(another_peer);
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
   EXPECT_CALL(*storage, apply(testing::Ref(block), _))
@@ -146,12 +133,17 @@ TEST_F(ChainValidationTest, FailWhenNoSupermajority) {
   ASSERT_FALSE(validator->validateBlock(block, *storage));
 }
 
+/**
+ * @given block with wrong hash signed by wrong peer key
+ * @when apply block
+ * @then block is not validated
+ */
 TEST_F(ChainValidationTest, FailWhenBadPeer) {
   // Valid previous hash, has supermajority, incorrect peers subset => invalid
-  shared_model::interface::types::PubkeyType wrong_public_key =
-      shared_model::interface::types::PubkeyType(std::string(32, '1'));
-  auto block = getBlockBuilder().build();
-  addSignature(block, wrong_public_key);
+  shared_model::crypto::Keypair wrong_key(
+      shared_model::crypto::PublicKey(std::string(32, 'x')),
+      shared_model::crypto::PrivateKey(std::string(32, 'x')));
+  auto block = getBlockBuilder().build().signAndAddSignature(wrong_key);
 
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
@@ -161,20 +153,21 @@ TEST_F(ChainValidationTest, FailWhenBadPeer) {
   ASSERT_FALSE(validator->validateBlock(block, *storage));
 }
 
+/**
+ * @given valid block signed by peer
+ * @when apply block
+ * @then block is validated via observer
+ */
 TEST_F(ChainValidationTest, ValidWhenValidateChainFromOnePeer) {
   // Valid previous hash, has supermajority, correct peers subset => valid
-  auto block = getBlockBuilder().build();
-  addSignature(block, public_key);
+  auto block = getBlockBuilder().build().signAndAddSignature(key);
 
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
-  // TODO: 14-02-2018 Alexey Chernyshov add argument after replacement
-  // with shared_model https://soramitsu.atlassian.net/browse/IR-903
-  iroha::model::Block old_block;
-  old_block.sigs.emplace_back();
-  old_block.sigs.back().pubkey = peer.pubkey;
-  old_block.prev_hash.fill(0);
-  auto block_observable = rxcpp::observable<>::just(old_block);
+  // TODO: 14-02-2018 Alexey Chernyshov add argument to EXPECT_CALL after
+  // replacement with shared_model https://soramitsu.atlassian.net/browse/IR-903
+  std::unique_ptr<iroha::model::Block> old_block(block.makeOldModel());
+  auto block_observable = rxcpp::observable<>::just(*old_block);
 
   EXPECT_CALL(*storage, apply(/* TODO block */ _, _))
       .WillOnce(InvokeArgument<1>(ByRef(block), ByRef(*query), ByRef(hash)));

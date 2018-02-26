@@ -278,7 +278,7 @@ TEST_F(AmetsuchiTest, SampleTest) {
   auto hashes = {block1hash, block2hash};
   validateCalls(blocks->getBlocks(1, 2),
                 [ i = 0, &hashes ](auto eachBlock) mutable {
-                  // TODO: 14-02-2018 Alexey Chernyshov remove this after relocation to
+                  // TODO: 14-02-2018 Alexey Chernyshov uncomment this after relocation to
                   // shared_model https://soramitsu.atlassian.net/browse/IR-880
 //                EXPECT_EQ(*(hashes.begin() + i), eachBlock.hash);
                   ++i;
@@ -449,7 +449,7 @@ TEST_F(AmetsuchiTest, queryGetAccountAssetTransactionsTest) {
   auto hashes = {block1hash, block2hash, block3hash};
   validateCalls(blocks->getBlocks(1, 3),
                 [ i = 0, &hashes ](auto eachBlock) mutable {
-                  // TODO: 14-02-2018 Alexey Chernyshov remove this after relocation to
+                  // TODO: 14-02-2018 Alexey Chernyshov uncomment this after relocation to
                   // shared_model https://soramitsu.atlassian.net/browse/IR-880
 //                  EXPECT_EQ(*(hashes.begin() + i), eachBlock.hash);
                   ++i;
