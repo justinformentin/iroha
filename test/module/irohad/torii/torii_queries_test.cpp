@@ -404,8 +404,6 @@ TEST_F(ToriiQueriesTest, FindAccountAssetWhenHasRolePermissions) {
             response.query_hash());
 }
 
-
-
 /**
  * Test for signatories response
  */
