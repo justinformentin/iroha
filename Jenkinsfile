@@ -13,7 +13,8 @@
 properties([parameters([
     choice(choices: 'Debug\nRelease', description: '', name: 'BUILD_TYPE'),
     booleanParam(defaultValue: true, description: '', name: 'Linux'),
-    booleanParam(defaultValue: false, description: '', name: 'ARM'),
+    booleanParam(defaultValue: false, description: '', name: 'ARMv7'),
+    booleanParam(defaultValue: false, description: '', name: 'ARMv8'),
     booleanParam(defaultValue: false, description: '', name: 'MacOS'),
     booleanParam(defaultValue: false, description: 'Whether build docs or not', name: 'Doxygen'),
     booleanParam(defaultValue: false, description: 'Whether build Java bindings', name: 'JavaBindings'),
@@ -28,10 +29,8 @@ pipeline {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
         CODECOV_TOKEN = credentials('CODECOV_TOKEN')
         DOCKERHUB = credentials('DOCKERHUB')
-        DOCKER_IMAGE = 'hyperledger/iroha-docker-develop:v1'
         DOCKER_BASE_IMAGE_DEVELOP = 'hyperledger/iroha-docker-develop:v1'
-        DOCKER_BASE_IMAGE_RELEASE_BUILD = 'hyperledger/iroha-docker-develop:v1'
-        DOCKER_BASE_IMAGE_RELEASE = 'hyperledger/iroha'
+        DOCKER_BASE_IMAGE_RELEASE = 'hyperledger/iroha-docker'
 
         IROHA_NETWORK = "iroha-${GIT_COMMIT}-${BUILD_NUMBER}"
         IROHA_POSTGRES_HOST = "pg-${GIT_COMMIT}-${BUILD_NUMBER}"
@@ -85,9 +84,28 @@ pipeline {
                         }
                     }
                 }
-                stage('ARM') {
-                    when { expression { return params.ARM } }
-                    agent { label 'arm' }
+                stage('ARMv7') {
+                    when { expression { return params.ARMv7 } }
+                    agent { label 'armv7' }
+                    steps {
+                        script {
+                            def debugBuild = load ".jenkinsci/debug-build.groovy"
+                            debugBuild.doDebugBuild()
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                def cleanup = load ".jenkinsci/docker-cleanup.groovy"
+                                cleanup.doDockerCleanup()
+                                cleanWs()
+                            }
+                        }
+                    }
+                }
+                stage('ARMv8') {
+                    when { expression { return params.ARMv8 } }
+                    agent { label 'armv8' }
                     steps {
                         script {
                             def debugBuild = load ".jenkinsci/debug-build.groovy"
@@ -177,9 +195,28 @@ pipeline {
                         }
                     }
                 }
-                stage('ARM') {
-                    when { expression { return params.ARM } }
-                    agent { label 'arm' }
+                stage('ARMv7') {
+                    when { expression { return params.ARMv7 } }
+                    agent { label 'armv7' }
+                    steps {
+                        script {
+                            def releaseBuild = load ".jenkinsci/release-build.groovy"
+                            releaseBuild.doReleaseBuild()
+                        }
+                    }
+                    post {
+                        always {
+                            script {
+                                def cleanup = load ".jenkinsci/docker-cleanup.groovy"
+                                cleanup.doDockerCleanup()
+                                cleanWs()
+                            }
+                        }
+                    }                        
+                }
+                stage('ARMv8') {
+                    when { expression { return params.ARMv8 } }
+                    agent { label 'armv8' }
                     steps {
                         script {
                             def releaseBuild = load ".jenkinsci/release-build.groovy"

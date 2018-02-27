@@ -1,6 +1,9 @@
 #!/usr/bin/env groovy
 
 def doDebugBuild() {
+	if (params.ARMv7) {
+		PARALLELISM = 1;
+	}
 	sh "docker network create ${env.IROHA_NETWORK}"
 
 	docker.image('postgres:9.5').run(""

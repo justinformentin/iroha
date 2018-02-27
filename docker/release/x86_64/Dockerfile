@@ -1,17 +1,15 @@
 FROM ubuntu:16.04
 
-
 ARG node
 
 RUN apt-get update;\
     apt-get upgrade; \
     apt-get install -y \
-        libc-ares-dev \
-        gdebi-core
+    libc-ares-dev
 
 #Install iroha
 COPY iroha.deb /tmp/iroha.deb
-RUN gdebi --non-interactive /tmp/iroha.deb
+RUN dpkg -i /tmp/iroha.deb
 
 WORKDIR /opt/iroha_data
 
