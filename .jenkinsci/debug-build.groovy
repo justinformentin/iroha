@@ -68,19 +68,19 @@ def doDebugBuild() {
 	    // sh "cmake --build build --target test"
 	    // sh "cmake --build build --target cppcheck"	    
 	    
-	    // // Sonar
-	    // if (env.CHANGE_ID != null) {
-	    //     sh """
-	    //         sonar-scanner \
-	    //             -Dsonar.github.disableInlineComments \
-	    //             -Dsonar.github.repository='hyperledger/iroha' \
-	    //             -Dsonar.analysis.mode=preview \
-	    //             -Dsonar.login=${SONAR_TOKEN} \
-	    //             -Dsonar.projectVersion=${BUILD_TAG} \
-	    //             -Dsonar.github.oauth=${SORABOT_TOKEN} \
-	    //             -Dsonar.github.pullRequest=${CHANGE_ID}
-	    //     """
-	    // }
+	    // Sonar
+	    if (env.CHANGE_ID != null) {
+	        sh """
+	            sonar-scanner \
+	                -Dsonar.github.disableInlineComments \
+	                -Dsonar.github.repository='hyperledger/iroha' \
+	                -Dsonar.analysis.mode=preview \
+	                -Dsonar.login=${SONAR_TOKEN} \
+	                -Dsonar.projectVersion=${BUILD_TAG} \
+	                -Dsonar.github.oauth=${SORABOT_TOKEN} \
+	                -Dsonar.github.pullRequest=${CHANGE_ID}
+	        """
+	    }
 
 	    // TODO: replace with upload to artifactory server
         // only develop branch
