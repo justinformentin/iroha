@@ -123,8 +123,7 @@ TEST_F(ChainValidationTest, FailWhenNoSupermajority) {
   // Valid previous hash, no supermajority, correct peers subset => invalid
   auto block = getBlockBuilder().build().signAndAddSignature(key);
 
-  Peer another_peer;
-  peers.push_back(another_peer);
+  peers.push_back(Peer());
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
   EXPECT_CALL(*storage, apply(testing::Ref(block), _))
