@@ -29,8 +29,8 @@ pipeline {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
         CODECOV_TOKEN = credentials('CODECOV_TOKEN')
         DOCKERHUB = credentials('DOCKERHUB')
-        DOCKER_BASE_IMAGE_DEVELOP = 'hyperledger/iroha-docker-develop:v1'
-        DOCKER_BASE_IMAGE_RELEASE = 'hyperledger/iroha-docker'
+        DOCKER_BASE_IMAGE_DEVELOP = 'hyperledger/iroha-develop'
+        DOCKER_BASE_IMAGE_RELEASE = 'hyperledger/iroha'
 
         IROHA_NETWORK = "iroha-${GIT_COMMIT}-${BUILD_NUMBER}"
         IROHA_POSTGRES_HOST = "pg-${GIT_COMMIT}-${BUILD_NUMBER}"
@@ -123,7 +123,7 @@ pipeline {
                     }
                 }
                 stage('MacOS'){
-                    when { expression { return  params.MacOS } }
+                    when { expression { return params.MacOS } }
                     agent { label 'mac' }
                     steps {
                         script {
@@ -137,7 +137,7 @@ pipeline {
                                 ccache --version
                                 ccache --show-stats
                                 ccache --zero-stats
-                                ccache --max-size=2G
+                                ccache --max-size=5G
                             """
                             sh """
                                 cmake \
@@ -236,28 +236,56 @@ pipeline {
                 stage('MacOS') {
                     when { expression { return params.MacOS } }                        
                     steps {
-                        sh "MacOS build will be running there"
+                        script {
+                            def scmVars = checkout scm
+                            env.IROHA_VERSION = "0x${scmVars.GIT_COMMIT}"
+                            env.IROHA_HOME = "/opt/iroha"
+                            env.IROHA_BUILD = "${env.IROHA_HOME}/build"
+                            env.CCACHE_DIR = "${env.IROHA_HOME}/.ccache"
+
+                            sh """
+                                ccache --version
+                                ccache --show-stats
+                                ccache --zero-stats
+                                ccache --max-size=5G
+                            """    
+                            sh """
+                                cmake \
+                                  -H. \
+                                  -Bbuild \
+                                  -DCMAKE_BUILD_TYPE=${params.BUILD_TYPE} \
+                                  -DIROHA_VERSION=${env.IROHA_VERSION}
+                            """
+                            sh "cmake --build build -- -j${params.PARALLELISM}"
+                            sh "ccache --show-stats"
+                            
+                            // TODO: replace with upload to artifactory server
+                            // only develop branch
+                            if ( env.BRANCH_NAME == "develop" ) {
+                                //archive(includes: 'build/bin/,compile_commands.json')
+                            }
+                        }
                     }
                 }
             }
         }
-        stage('SonarQube') {
-            when { expression { params.BUILD_TYPE == 'Release' } }
-            steps {
-                sh """
-                    if [ -n ${SONAR_TOKEN} ] && \
-                      [ -n ${BUILD_TAG} ] && \
-                      [ -n ${BRANCH_NAME} ]; then
-                      sonar-scanner \
-                        -Dsonar.login=${SONAR_TOKEN} \
-                        -Dsonar.projectVersion=${BUILD_TAG} \
-                        -Dsonar.branch=${BRANCH_NAME}
-                    else
-                      echo 'required env vars not found'
-                    fi
-                """
-            }
-        }
+        // stage('SonarQube') {
+        //     when { expression { params.BUILD_TYPE == 'Release' } }
+        //     steps {
+        //         sh """
+        //             if [ -n ${SONAR_TOKEN} ] && \
+        //               [ -n ${BUILD_TAG} ] && \
+        //               [ -n ${BRANCH_NAME} ]; then
+        //               sonar-scanner \
+        //                 -Dsonar.login=${SONAR_TOKEN} \
+        //                 -Dsonar.projectVersion=${BUILD_TAG} \
+        //                 -Dsonar.branch=${BRANCH_NAME}
+        //             else
+        //               echo 'required env vars not found'
+        //             fi
+        //         """
+        //     }
+        // }
         stage('Build docs') {
             // build docs on any vacant node. Prefer `x86_64` over
             // others as nodes are more powerful
