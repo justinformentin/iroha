@@ -61,7 +61,10 @@ target_link_libraries(model
     schema
     cryptography
     rapidjson
-    )
+
+  shared_model_proto_backend
+
+  )
 
 add_library(model_registrations INTERFACE)
 target_include_directories(model_registrations INTERFACE

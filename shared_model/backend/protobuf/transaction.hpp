@@ -24,17 +24,25 @@
 
 #include "backend/protobuf/commands/proto_command.hpp"
 #include "backend/protobuf/common_objects/signature.hpp"
-#include "block.pb.h"
 #include "utils/lazy_initializer.hpp"
+
+namespace iroha {
+  namespace protocol {
+    class Transaction;
+  }
+}
 
 namespace shared_model {
   namespace proto {
+
     class Transaction FINAL : public CopyableProto<interface::Transaction,
                                                    iroha::protocol::Transaction,
                                                    Transaction> {
-     public:
+     private:
+      /** workaround to make {l,r}value constructors without code duplication
+       * **/
       template <typename TransactionType>
-      explicit Transaction(TransactionType &&transaction)
+      Transaction(TransactionType &&transaction)
           : CopyableProto(std::forward<TransactionType>(transaction)),
             payload_(proto_->payload()),
             commands_([this] {
@@ -59,54 +67,37 @@ namespace shared_model {
             }),
             txhash_([this] { return HashProviderType::makeHash(payload()); }) {}
 
-      Transaction(const Transaction &o) : Transaction(o.proto_) {}
+     public:
+      //< initializing constructor, explicitly specified in cpp
+      Transaction(const iroha::protocol::Transaction &tx);
 
-      Transaction(Transaction &&o) noexcept
-          : Transaction(std::move(o.proto_)) {}
+      //< initializing constructor, explicitly specified in cpp
+      Transaction(iroha::protocol::Transaction &&tx);
 
-      const interface::types::AccountIdType &creatorAccountId() const override {
-        return payload_.creator_account_id();
-      }
+      //< copy constructor
+      Transaction(const Transaction &o);
 
-      interface::types::CounterType transactionCounter() const override {
-        return payload_.tx_counter();
-      }
+      //< move constructor
+      Transaction(Transaction &&o) noexcept;
 
-      const Transaction::CommandsType &commands() const override {
-        return *commands_;
-      }
+      const interface::types::AccountIdType &creatorAccountId() const override;
 
-      const Transaction::BlobType &blob() const override {
-        return *blob_;
-      }
+      interface::types::CounterType transactionCounter() const override;
 
-      const Transaction::BlobType &payload() const override {
-        return *blobTypePayload_;
-      }
+      const Transaction::CommandsType &commands() const override;
 
-      const Transaction::HashType &hash() const override {
-        return *txhash_;
-      }
+      const Transaction::BlobType &blob() const override;
 
-      const interface::SignatureSetType &signatures() const override {
-        return *signatures_;
-      }
+      const Transaction::BlobType &payload() const override;
+
+      const Transaction::HashType &hash() const override;
+
+      const interface::SignatureSetType &signatures() const override;
 
       bool addSignature(
-          const interface::types::SignatureType &signature) override {
-        if (signatures_->count(signature) > 0) {
-          return false;
-        }
-        auto sig = proto_->add_signature();
-        sig->set_pubkey(crypto::toBinaryString(signature->publicKey()));
-        sig->set_signature(crypto::toBinaryString(signature->signedData()));
-        signatures_.invalidate();
-        return true;
-      }
+          const interface::types::SignatureType &signature) override;
 
-      interface::types::TimestampType createdTime() const override {
-        return payload_.created_time();
-      }
+      interface::types::TimestampType createdTime() const override;
 
      private:
       // lazy
