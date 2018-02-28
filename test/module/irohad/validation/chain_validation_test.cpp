@@ -17,6 +17,7 @@
 
 #include "builders/protobuf/block.hpp"
 #include "module/irohad/ametsuchi/ametsuchi_mocks.hpp"
+#include "module/irohad/consensus/yac/yac_mocks.hpp"
 #include "module/irohad/model/model_mocks.hpp"
 #include "validation/impl/chain_validator_impl.hpp"
 
@@ -37,7 +38,9 @@ using ::testing::_;
 class ChainValidationTest : public ::testing::Test {
  public:
   void SetUp() override {
-    validator = std::make_shared<ChainValidatorImpl>();
+    supermajority_checker =
+        std::make_shared<iroha::consensus::yac::MockSupermajorityChecker>();
+    validator = std::make_shared<ChainValidatorImpl>(supermajority_checker);
     storage = std::make_shared<MockMutableStorage>();
     query = std::make_shared<MockWsvQuery>();
     peers = std::vector<Peer>{peer};
@@ -48,7 +51,11 @@ class ChainValidationTest : public ::testing::Test {
    * @return block builder
    */
   auto getBlockBuilder() const {
-    return shared_model::proto::BlockBuilder()
+    constexpr auto kTotal = (1 << 5) - 1;
+    return shared_model::proto::TemplateBlockBuilder<
+               kTotal,
+               shared_model::validation::DefaultBlockValidator,
+               shared_model::proto::Block>()
         .transactions(std::vector<shared_model::proto::Transaction>{})
         .txNumber(0)
         .height(1)
@@ -56,21 +63,16 @@ class ChainValidationTest : public ::testing::Test {
         .createdTime(iroha::time::now());
   }
 
-  // TODO: 14-02-2018 Alexey Chernyshov make sure peer has valid key after
-  // replacement with shared_model https://soramitsu.atlassian.net/browse/IR-903
+  //  // TODO: 14-02-2018 Alexey Chernyshov make sure peer has valid key after
+  //  // replacement with shared_model
+  //  https://soramitsu.atlassian.net/browse/IR-903
   Peer peer;
   std::vector<Peer> peers;
 
-  shared_model::crypto::Hash hash =
-      shared_model::crypto::Hash(std::string(32, '0'));
+  shared_model::crypto::Hash hash = shared_model::crypto::Hash("valid hash");
 
-  /**
-   * Valid key
-   */
-  shared_model::crypto::Keypair key = shared_model::crypto::Keypair(
-      shared_model::crypto::PublicKey(std::string(32, '\0')),
-      shared_model::crypto::PrivateKey(std::string(32, '\0')));
-
+  std::shared_ptr<iroha::consensus::yac::MockSupermajorityChecker>
+      supermajority_checker;
   std::shared_ptr<ChainValidatorImpl> validator;
   std::shared_ptr<MockMutableStorage> storage;
   std::shared_ptr<MockWsvQuery> query;
@@ -83,7 +85,11 @@ class ChainValidationTest : public ::testing::Test {
  */
 TEST_F(ChainValidationTest, ValidCase) {
   // Valid previous hash, has supermajority, correct peers subset => valid
-  auto block = getBlockBuilder().build().signAndAddSignature(key);
+  auto block = getBlockBuilder().build();
+
+  EXPECT_CALL(*supermajority_checker,
+              hasSupermajority(testing::Ref(block.signatures()), _))
+      .WillOnce(Return(true));
 
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
@@ -100,7 +106,7 @@ TEST_F(ChainValidationTest, ValidCase) {
  */
 TEST_F(ChainValidationTest, FailWhenDifferentPrevHash) {
   // Invalid previous hash, has supermajority, correct peers subset => invalid
-  auto block = getBlockBuilder().build().signAndAddSignature(key);
+  auto block = getBlockBuilder().build();
 
   shared_model::crypto::Hash another_hash =
       shared_model::crypto::Hash(std::string(32, '1'));
@@ -121,7 +127,11 @@ TEST_F(ChainValidationTest, FailWhenDifferentPrevHash) {
  */
 TEST_F(ChainValidationTest, FailWhenNoSupermajority) {
   // Valid previous hash, no supermajority, correct peers subset => invalid
-  auto block = getBlockBuilder().build().signAndAddSignature(key);
+  auto block = getBlockBuilder().build();
+
+  EXPECT_CALL(*supermajority_checker,
+              hasSupermajority(testing::Ref(block.signatures()), _))
+      .WillOnce(Return(false));
 
   peers.push_back(Peer());
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
@@ -139,10 +149,11 @@ TEST_F(ChainValidationTest, FailWhenNoSupermajority) {
  */
 TEST_F(ChainValidationTest, FailWhenBadPeer) {
   // Valid previous hash, has supermajority, incorrect peers subset => invalid
-  shared_model::crypto::Keypair wrong_key(
-      shared_model::crypto::PublicKey(std::string(32, 'x')),
-      shared_model::crypto::PrivateKey(std::string(32, 'x')));
-  auto block = getBlockBuilder().build().signAndAddSignature(wrong_key);
+  auto block = getBlockBuilder().build();
+
+  EXPECT_CALL(*supermajority_checker,
+              hasSupermajority(testing::Ref(block.signatures()), _))
+      .WillOnce(Return(false));
 
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
@@ -158,8 +169,17 @@ TEST_F(ChainValidationTest, FailWhenBadPeer) {
  * @then block is validated via observer
  */
 TEST_F(ChainValidationTest, ValidWhenValidateChainFromOnePeer) {
+  // TODO: 14-02-2018 Alexey Chernyshov remove hash after
+  // replacement with shared_model https://soramitsu.atlassian.net/browse/IR-903
+  // now it is needed because makeOldModel expects length of 32
+  auto hash = shared_model::crypto::Hash(std::string(32, '0'));
+
   // Valid previous hash, has supermajority, correct peers subset => valid
-  auto block = getBlockBuilder().build().signAndAddSignature(key);
+  auto block = getBlockBuilder().prevHash(hash).build();
+
+  EXPECT_CALL(*supermajority_checker,
+              hasSupermajority(testing::Ref(block.signatures()), _))
+      .WillOnce(Return(true));
 
   EXPECT_CALL(*query, getPeers()).WillOnce(Return(peers));
 
