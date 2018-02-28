@@ -25,7 +25,6 @@
 #include "backend/protobuf/transaction.hpp"
 #include "backend/protobuf/util.hpp"
 #include "common_objects/trivial_proto.hpp"
-#include "model/block.hpp"
 
 #include "block.pb.h"
 #include "utils/lazy_initializer.hpp"
@@ -112,7 +111,7 @@ namespace shared_model {
         return payload_.tx_number();
       }
 
-      const typename Hashable<Block, iroha::model::Block>::BlobType &payload()
+      const typename HASHABLE(Block)::BlobType &payload()
           const override {
         return *payload_blob_;
       }
