@@ -88,6 +88,26 @@ namespace shared_model {
             and this->createdTime() == rhs.createdTime();
       }
 
+      /**
+       * Provides hash from payload
+       * @return hash of payload
+       */
+#ifndef DISABLE_BACKWARD
+      virtual const typename Hashable<Model, OldModel>::HashType &hash() const override {
+        if (Hashable<Model, OldModel>::hash_ == boost::none) {
+          Hashable<Model, OldModel>::hash_.emplace(Hashable<Model, OldModel>::HashProviderType::makeHash(payload()));
+        }
+        return *Hashable<Model, OldModel>::hash_;
+      }
+#else
+      virtual const typename Hashable<Model>::HashType &hash() const override {
+        if (Hashable<Model>::hash_ == boost::none) {
+          Hashable<Model>::hash_.emplace(Hashable<Model>::HashProviderType::makeHash(payload()));
+        }
+        return *Hashable<Model>::hash_;
+      }
+#endif
+
       // ------------------------| Primitive override |-------------------------
 
       std::string toString() const override {
