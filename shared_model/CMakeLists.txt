@@ -37,18 +37,8 @@ if (NOT IROHA_ROOT_PROJECT)
     include(FeatureSummary)
     include(cmake/functions.cmake)
     include(cmake/dependencies.cmake)
-
-        message("Message 1")
-
-    compile_proto_to_cpp(block.proto)
-    compile_proto_to_cpp(proposal.proto)
-    compile_proto_to_cpp(primitive.proto)
-    compile_proto_to_cpp(commands.proto)
-    compile_proto_to_cpp(queries.proto)
-    compile_proto_to_cpp(responses.proto)
-    message("Message 2")
-
-    add_subdirectory(../schema ${IROHA_SCHEMA_DIR})
+        
+    add_subdirectory(../schema build)
 endif()
 add_library(old_model INTERFACE)
 
